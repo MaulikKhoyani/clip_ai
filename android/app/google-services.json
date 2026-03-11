@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1041379095704",
+    "project_id": "clipai-5e5cf",
+    "storage_bucket": "clipai-5e5cf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1041379095704:android:32ed1c55ae81f503a94ced",
+        "android_client_info": {
+          "package_name": "com.clipai.clipai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSRoayYcqfv46oMw9qtCQy3n5SNMLh7FY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
