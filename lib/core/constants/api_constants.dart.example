@@ -1,0 +1,25 @@
+// Copy this file to api_constants.dart and fill in your credentials.
+// DO NOT commit api_constants.dart — it is gitignored.
+
+class ApiConstants {
+  ApiConstants._();
+
+  // Supabase
+  static const supabaseUrl = 'YOUR_SUPABASE_URL';
+  static const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+
+  // IMG.LY Video Editor SDK — get your license at https://img.ly/dashboard
+  // Android: set IMGLY_LICENSE_KEY in android/app/src/main/kotlin/.../MainActivity.kt
+  // iOS: add imgly.license file to ios/Runner/ in Xcode
+  static const imglyLicenseKey = 'YOUR_IMGLY_LICENSE_KEY';
+
+  // RevenueCat
+  static const revenueCatAppleKey = 'YOUR_REVENUECAT_APPLE_KEY';
+  static const revenueCatGoogleKey = 'YOUR_REVENUECAT_GOOGLE_KEY';
+  static const entitlementId = 'pro_access';
+
+  // Product IDs
+  static const proMonthlyId = 'clipai_pro_monthly';
+  static const proYearlyId = 'clipai_pro_yearly';
+  static const proLifetimeId = 'clipai_pro_lifetime';
+}

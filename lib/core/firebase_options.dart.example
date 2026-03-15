@@ -1,3 +1,6 @@
+// Copy this file to firebase_options.dart and fill in your Firebase credentials.
+// DO NOT commit firebase_options.dart — it is gitignored.
+
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
@@ -17,19 +20,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDSRoayYcqfv46oMw9qtCQy3n5SNMLh7FY',
-    appId: '1:1041379095704:android:32ed1c55ae81f503a94ced',
-    messagingSenderId: '1041379095704',
-    projectId: 'clipai-5e5cf',
-    storageBucket: 'clipai-5e5cf.firebasestorage.app',
+    apiKey: 'YOUR_ANDROID_API_KEY',
+    appId: 'YOUR_ANDROID_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAJmDKG-3J6UZdaIiFM3zUh76jBns5AwZ4',
-    appId: '1:1041379095704:ios:b3b33c54728f04eea94ced',
-    messagingSenderId: '1041379095704',
-    projectId: 'clipai-5e5cf',
-    storageBucket: 'clipai-5e5cf.firebasestorage.app',
+    apiKey: 'YOUR_IOS_API_KEY',
+    appId: 'YOUR_IOS_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
     iosBundleId: 'com.clipai.clipai',
   );
 }
