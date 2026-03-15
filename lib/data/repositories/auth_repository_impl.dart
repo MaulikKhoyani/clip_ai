@@ -226,7 +226,12 @@ class AuthRepositoryImpl implements AuthRepository {
       if (userId == null) {
         return const Failure(AuthException('Not authenticated'));
       }
-      await _auth.signOut();
+      // Delete all user data + auth account (via RPC if function is set up)
+      await _dataSource.deleteUserData(userId);
+      // Sign out after deletion (no-op if auth user was already deleted by RPC)
+      try {
+        await _auth.signOut();
+      } catch (_) {}
       return const Success(null);
     } catch (e) {
       return Failure(AuthException(e.toString()));

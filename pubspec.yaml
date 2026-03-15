@@ -27,8 +27,9 @@ dependencies:
   firebase_messaging: ^15.2.4
   flutter_local_notifications: ^18.0.1
 
-  # Video Editing
-  ve_sdk_flutter: ^0.37.0
+  # Video Editing (free, no license required)
+  ffmpeg_kit_flutter_new_min_gpl: ^1.1.0
+  video_editor: ^3.0.0
 
   # Subscriptions
   purchases_flutter: ^8.6.0

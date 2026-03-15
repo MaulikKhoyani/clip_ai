@@ -1,8 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ve_sdk_flutter/ve_sdk_flutter.dart';
 
-import 'package:clip_ai/services/banuba_service.dart';
+import 'package:clip_ai/services/imgly_service.dart';
+import 'package:clip_ai/services/video_editing_service.dart';
 import 'package:clip_ai/services/notification_service.dart';
 import 'package:clip_ai/services/subscription_service.dart';
 import 'package:clip_ai/services/analytics_service.dart';
@@ -33,11 +33,15 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<SupabaseClient>(
     () => Supabase.instance.client,
   );
-  getIt.registerLazySingleton<VeSdkFlutter>(
-    () => VeSdkFlutter(),
-  );
 
   // Services
+  getIt.registerLazySingleton<ImglyService>(
+    () => ImglyService(),
+  );
+  getIt.registerLazySingleton<VideoEditingService>(
+    () => VideoEditingService(),
+  );
+
   getIt.registerLazySingleton<SubscriptionService>(
     () => SubscriptionService(),
   );
@@ -47,10 +51,6 @@ Future<void> configureDependencies() async {
   getIt.registerSingleton<AnalyticsService>(analyticsService);
 
   getIt.registerSingleton<NotificationService>(NotificationService.instance);
-
-  getIt.registerLazySingleton<BanubaService>(
-    () => BanubaService(getIt<VeSdkFlutter>()),
-  );
 
   // Data Sources
   getIt.registerLazySingleton<SupabaseDataSource>(

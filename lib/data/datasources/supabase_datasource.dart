@@ -110,6 +110,38 @@ class SupabaseDataSource {
     await _client.rpc('increment_template_download', params: {'t_id': id});
   }
 
+  // ── Account Deletion ──
+
+  /// Deletes all user data and the auth account.
+  /// Requires a Supabase SQL function `delete_user()` to delete from auth.users.
+  /// See: https://supabase.com/docs/guides/auth/managing-user-data
+  Future<void> deleteUserData(String userId) async {
+    // 1. Delete user's projects
+    await _client.from('projects').delete().eq('user_id', userId);
+
+    // 2. Delete user's exports (if table exists)
+    try {
+      await _client.from('exports').delete().eq('user_id', userId);
+    } catch (_) {}
+
+    // 3. Delete user's profile
+    await _client.from('profiles').delete().eq('id', userId);
+
+    // 4. Delete auth user via RPC (requires the SQL function below in Supabase):
+    // CREATE OR REPLACE FUNCTION delete_user()
+    // RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+    // BEGIN
+    //   DELETE FROM auth.users WHERE id = auth.uid();
+    // END; $$;
+    // GRANT EXECUTE ON FUNCTION delete_user TO authenticated;
+    try {
+      await _client.rpc('delete_user');
+    } catch (_) {
+      // Function not set up yet — data is deleted but auth user remains.
+      // Add the SQL function above in Supabase SQL editor to complete deletion.
+    }
+  }
+
   // ── FCM Tokens ──
 
   Future<void> saveFcmToken(String userId, String token) async {

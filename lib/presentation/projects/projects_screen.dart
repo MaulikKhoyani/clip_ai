@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:clip_ai/core/constants/app_colors.dart';
 import 'package:clip_ai/core/constants/app_strings.dart';
 import 'package:clip_ai/domain/entities/project_entity.dart';
+import 'package:clip_ai/presentation/editor/video_editor_page.dart';
 import 'bloc/projects_bloc.dart';
 import 'bloc/projects_event.dart';
 import 'bloc/projects_state.dart';
@@ -207,7 +208,7 @@ class _ProjectsBody extends StatelessWidget {
         itemBuilder: (context, index) => _ProjectCard(
           project: projects[index],
           onDelete: () => _confirmDelete(context, projects[index]),
-          onEdit: () => context.push('/editor'),
+          onEdit: () => _openEditor(context, projects[index]),
         ),
       ),
     );
@@ -249,6 +250,29 @@ class _ProjectsBody extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openEditor(BuildContext context, ProjectEntity project) async {
+    final videoPath = project.projectMeta['video_path'] as String?;
+    if (videoPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Video file not available',
+              style: GoogleFonts.inter()),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => VideoEditorPage(videoPath: videoPath),
+      ),
+    );
+    if (saved == true && context.mounted) {
+      context.read<ProjectsBloc>().add(const ProjectsRefreshRequested());
+    }
   }
 
   void _confirmDelete(BuildContext context, ProjectEntity project) {
@@ -490,8 +514,15 @@ class _ProjectCard extends StatelessWidget {
               ),
               onTap: () {
                 Navigator.pop(context);
-                GoRouter.of(context)
-                    .push('/export?projectId=${project.id}');
+                final videoPath =
+                    project.projectMeta['video_path'] as String?;
+                if (videoPath == null) return;
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => VideoShareSheet(videoPath: videoPath),
+                );
               },
             ),
             ListTile(

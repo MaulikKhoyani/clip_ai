@@ -4,37 +4,33 @@ class SubscriptionService {
   static const entitlementId = 'pro_access';
   static const maxFreeTemplates = 3;
 
-  /// Purchases is configured in main.dart during app startup.
-  /// This method is kept as a hook for any additional RevenueCat setup.
-  Future<void> initialize() async {
-    // TODO: add any post-configure RevenueCat setup here
-  }
+  // Set to true after Purchases.configure() is called in main.dart
+  static bool _configured = false;
+  static bool get isConfigured => _configured;
+  static void markConfigured() => _configured = true;
 
   Future<bool> get isProUser async {
+    if (!_configured) return false;
     try {
       final customerInfo = await Purchases.getCustomerInfo();
-      return customerInfo
-          .entitlements.all[entitlementId]?.isActive ??
-          false;
+      return customerInfo.entitlements.all[entitlementId]?.isActive ?? false;
     } catch (_) {
       return false;
     }
   }
 
   Future<void> loginUser(String userId) async {
+    if (!_configured) return;
     try {
       await Purchases.logIn(userId);
-    } catch (_) {
-      // RevenueCat not configured — skip silently
-    }
+    } catch (_) {}
   }
 
   Future<void> logoutUser() async {
+    if (!_configured) return;
     try {
       await Purchases.logOut();
-    } catch (_) {
-      // RevenueCat not configured — skip silently
-    }
+    } catch (_) {}
   }
 
   // ── Feature gates ──

@@ -7,7 +7,6 @@ import 'package:clip_ai/presentation/splash/splash_screen.dart';
 import 'package:clip_ai/presentation/onboarding/onboarding_screen.dart';
 import 'package:clip_ai/presentation/auth/auth_screen.dart';
 import 'package:clip_ai/presentation/home/home_screen.dart';
-import 'package:clip_ai/presentation/templates/templates_screen.dart';
 import 'package:clip_ai/presentation/editor/editor_screen.dart';
 import 'package:clip_ai/presentation/settings/settings_screen.dart';
 import 'package:clip_ai/presentation/paywall/paywall_screen.dart';
@@ -73,12 +72,6 @@ final GoRouter appRouter = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/templates',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: TemplatesScreen(),
-          ),
-        ),
-        GoRoute(
           path: '/projects',
           pageBuilder: (context, state) => const NoTransitionPage(
             child: ProjectsScreen(),
@@ -122,7 +115,7 @@ class MainShell extends StatelessWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  static const _tabs = ['/home', '/templates', '/projects', '/settings'];
+  static const _tabs = ['/home', '/projects', '/settings'];
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
@@ -155,11 +148,6 @@ class MainShell extends StatelessWidget {
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home_rounded),
               label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined),
-              activeIcon: Icon(Icons.grid_view_rounded),
-              label: 'Templates',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.folder_outlined),

@@ -70,9 +70,14 @@ class NotificationService {
     }
 
     // Get token and upload if user is already logged in
-    final token = await _messaging.getToken();
-    debugPrint('FCM Token: $token');
-    if (token != null) await _uploadTokenIfLoggedIn(token);
+    // getToken() throws on iOS simulator (no APNs) — safe to ignore
+    try {
+      final token = await _messaging.getToken();
+      debugPrint('FCM Token: $token');
+      if (token != null) await _uploadTokenIfLoggedIn(token);
+    } catch (e) {
+      debugPrint('FCM getToken failed (expected on simulator): $e');
+    }
 
     // Upload refreshed token
     _messaging.onTokenRefresh.listen((newToken) async {
@@ -83,13 +88,17 @@ class NotificationService {
 
   /// Call this after the user successfully signs in so their token is saved.
   Future<void> onUserLoggedIn(String userId) async {
-    final token = await _messaging.getToken();
-    if (token != null && _datasource != null) {
-      try {
-        await _datasource!.saveFcmToken(userId, token);
-      } catch (e) {
-        debugPrint('FCM token upload failed: $e');
+    try {
+      final token = await _messaging.getToken();
+      if (token != null && _datasource != null) {
+        try {
+          await _datasource!.saveFcmToken(userId, token);
+        } catch (e) {
+          debugPrint('FCM token upload failed: $e');
+        }
       }
+    } catch (e) {
+      debugPrint('FCM getToken failed on login (expected on simulator): $e');
     }
   }
 

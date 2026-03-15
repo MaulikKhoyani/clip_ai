@@ -4,11 +4,13 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:clip_ai/core/constants/app_colors.dart';
 import 'package:clip_ai/core/constants/app_strings.dart';
 import 'package:clip_ai/domain/entities/project_entity.dart';
-import 'package:clip_ai/domain/entities/template_entity.dart';
+import 'package:clip_ai/domain/repositories/project_repository.dart';
+import 'package:clip_ai/presentation/editor/video_editor_page.dart';
 import 'package:clip_ai/presentation/home/bloc/home_bloc.dart';
 import 'package:clip_ai/presentation/home/bloc/home_event.dart';
 import 'package:clip_ai/presentation/home/bloc/home_state.dart';
@@ -78,19 +80,6 @@ class HomeScreen extends StatelessWidget {
                 Expanded(child: _ShimmerBox(height: 140)),
               ],
             ),
-            const SizedBox(height: 32),
-            _ShimmerBox(width: 160, height: 20),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 160,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: 3,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (_, __) =>
-                    _ShimmerBox(width: 140, height: 160),
-              ),
-            ),
           ],
         ),
       ),
@@ -113,9 +102,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 28),
             _buildQuickActions(context),
             const SizedBox(height: 32),
-            _buildFeaturedTemplates(context, state),
-            const SizedBox(height: 32),
-            _buildRecentProjects(state),
+            _buildRecentProjects(context, state),
             const SizedBox(height: 100),
           ],
         ),
@@ -213,6 +200,41 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _openCamera(BuildContext context) async {
+    final picker = ImagePicker();
+    final video = await picker.pickVideo(
+      source: ImageSource.camera,
+      maxDuration: const Duration(minutes: 3),
+    );
+    if (video == null) return;
+    if (!context.mounted) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => VideoEditorPage(videoPath: video.path),
+      ),
+    );
+    if (saved == true && context.mounted) {
+      context.read<HomeBloc>().add(HomeRefreshRequested());
+    }
+  }
+
+  Future<void> _importFromGallery(BuildContext context) async {
+    final picker = ImagePicker();
+    final video = await picker.pickVideo(source: ImageSource.gallery);
+    if (video == null) return;
+    if (!context.mounted) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => VideoEditorPage(videoPath: video.path),
+      ),
+    );
+    if (saved == true && context.mounted) {
+      context.read<HomeBloc>().add(HomeRefreshRequested());
+    }
+  }
+
   Widget _buildQuickActions(BuildContext context) {
     return Row(
       children: [
@@ -225,7 +247,7 @@ class HomeScreen extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            onTap: () => context.push('/editor'),
+            onTap: () => _openCamera(context),
           ),
         ),
         const SizedBox(width: 16),
@@ -238,68 +260,14 @@ class HomeScreen extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            onTap: () => context.push('/editor'),
+            onTap: () => _importFromGallery(context),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFeaturedTemplates(BuildContext context, HomeLoaded state) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              AppStrings.featuredTemplates,
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            GestureDetector(
-              onTap: () => context.push('/templates'),
-              child: Text(
-                AppStrings.seeAll,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.accent,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 190,
-          child: state.featuredTemplates.isEmpty
-              ? Center(
-                  child: Text(
-                    'No templates available',
-                    style: GoogleFonts.inter(
-                      color: AppColors.textTertiary,
-                      fontSize: 14,
-                    ),
-                  ),
-                )
-              : ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: state.featuredTemplates.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
-                  itemBuilder: (_, index) => _TemplateCard(
-                    template: state.featuredTemplates[index],
-                    isPro: state.isPro,
-                  ),
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentProjects(HomeLoaded state) {
+  Widget _buildRecentProjects(BuildContext context, HomeLoaded state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -318,7 +286,11 @@ class HomeScreen extends StatelessWidget {
           ...state.recentProjects.map(
             (p) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _ProjectTile(project: p),
+              child: _ProjectTile(
+                project: p,
+                onDeleted: () =>
+                    context.read<HomeBloc>().add(HomeRefreshRequested()),
+              ),
             ),
           ),
       ],
@@ -460,198 +432,179 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-class _TemplateCard extends StatelessWidget {
-  final TemplateEntity template;
-  final bool isPro;
+class _ProjectTile extends StatelessWidget {
+  final ProjectEntity project;
+  final VoidCallback onDeleted;
 
-  const _TemplateCard({required this.template, required this.isPro});
+  const _ProjectTile({required this.project, required this.onDeleted});
+
+  String? get _videoPath => project.projectMeta['video_path'] as String?;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.surfaceDark.withValues(alpha: 0.6),
+    return GestureDetector(
+      onTap: () => _showOptions(context),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.cardDark.withValues(alpha: 0.5)),
         ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withValues(alpha: 0.3),
-                        AppColors.accent.withValues(alpha: 0.15),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Icon(
-                    Iconsax.video_play,
-                    color: AppColors.textTertiary.withValues(alpha: 0.5),
-                    size: 36,
-                  ),
-                ),
-                if (template.isPro && !isPro)
-                  Container(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    child: const Center(
-                      child: Icon(
-                        Iconsax.lock,
-                        color: AppColors.proBadge,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                if (template.isPro)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppColors.proBadgeGradientStart,
-                            AppColors.proBadgeGradientEnd,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'PRO',
-                        style: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.2),
+                  AppColors.accent.withValues(alpha: 0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Iconsax.video_play,
+                color: AppColors.textSecondary, size: 24),
+          ),
+          title: Text(
+            project.title,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  template.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
+          subtitle: Row(
+            children: [
+              Text(
+                project.formattedDuration,
+                style: GoogleFonts.inter(
+                    fontSize: 12, color: AppColors.textTertiary),
+              ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                width: 3,
+                height: 3,
+                decoration: const BoxDecoration(
+                    color: AppColors.textTertiary, shape: BoxShape.circle),
+              ),
+              Text(
+                project.isDraft ? 'Draft' : 'Exported',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: project.isDraft ? AppColors.warning : AppColors.success,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  template.category,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+          trailing: const Icon(Icons.more_vert_rounded,
+              color: AppColors.textTertiary, size: 20),
+        ),
       ),
     );
   }
-}
 
-class _ProjectTile extends StatelessWidget {
-  final ProjectEntity project;
-
-  const _ProjectTile({required this.project});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.cardDark.withValues(alpha: 0.5),
-        ),
+  void _showOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary.withValues(alpha: 0.2),
-                AppColors.accent.withValues(alpha: 0.1),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Iconsax.video_play,
-            color: AppColors.textSecondary,
-            size: 24,
-          ),
-        ),
-        title: Text(
-          project.title,
-          style: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        subtitle: Row(
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              project.formattedDuration,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.textTertiary,
-              ),
-            ),
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              width: 3,
-              height: 3,
-              decoration: const BoxDecoration(
-                color: AppColors.textTertiary,
-                shape: BoxShape.circle,
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 20),
+              decoration: BoxDecoration(
+                color: AppColors.textTertiary.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            Text(
-              project.isDraft ? 'Draft' : 'Exported',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: project.isDraft
-                    ? AppColors.warning
-                    : AppColors.success,
-              ),
+            ListTile(
+              leading: const Icon(Iconsax.edit_2, color: AppColors.primary),
+              title: Text('Edit Video',
+                  style: GoogleFonts.inter(color: AppColors.textPrimary)),
+              onTap: () async {
+                Navigator.pop(context);
+                if (_videoPath == null) return;
+                final saved = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (_) => VideoEditorPage(videoPath: _videoPath!),
+                  ),
+                );
+                if (saved == true && context.mounted) onDeleted();
+              },
             ),
+            ListTile(
+              leading: Icon(Iconsax.export_1, color: AppColors.accent),
+              title: Text('Export / Share',
+                  style: GoogleFonts.inter(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                if (_videoPath == null) return;
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => VideoShareSheet(videoPath: _videoPath!),
+                );
+              },
+            ),
+            ListTile(
+              leading:
+                  const Icon(Iconsax.trash, color: AppColors.error),
+              title: Text('Delete',
+                  style: GoogleFonts.inter(color: AppColors.error)),
+              onTap: () => _confirmDelete(context),
+            ),
+            const SizedBox(height: 8),
           ],
         ),
-        trailing: Icon(
-          Iconsax.arrow_right_3,
-          color: AppColors.textTertiary,
-          size: 18,
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    Navigator.pop(context); // close options sheet first
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Delete Project',
+            style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        content: Text(
+          'Delete "${project.title}"? This cannot be undone.',
+          style: GoogleFonts.inter(color: AppColors.textSecondary),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppStrings.cancel,
+                style: GoogleFonts.inter(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await GetIt.I<ProjectRepository>()
+                  .deleteProject(project.id);
+              onDeleted();
+            },
+            child: Text(AppStrings.delete,
+                style: GoogleFonts.inter(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
@@ -7,143 +6,96 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:clip_ai/core/constants/app_colors.dart';
 import 'package:clip_ai/core/constants/app_strings.dart';
-import 'package:clip_ai/services/banuba_service.dart';
+import 'package:clip_ai/presentation/editor/video_editor_page.dart';
 
 class EditorScreen extends StatelessWidget {
   const EditorScreen({super.key});
 
-  BanubaService get _banubaService => GetIt.I<BanubaService>();
+  // ─── Navigation to VideoEditorPage ───────────────────────────────────────
 
   Future<void> _openCamera(BuildContext context) async {
-    try {
-      final result = await _banubaService.openCamera();
-      if (result != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Video exported successfully!'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
+    final picker = ImagePicker();
+    final video = await picker.pickVideo(
+      source: ImageSource.camera,
+      maxDuration: const Duration(minutes: 3),
+    );
+    if (video == null) return;
+    if (!context.mounted) return;
+    _openEditor(context, video.path);
   }
 
   Future<void> _importFromGallery(BuildContext context) async {
-    try {
-      final picker = ImagePicker();
-      final video = await picker.pickVideo(source: ImageSource.gallery);
-      if (video == null) return;
-
-      if (context.mounted) {
-        final result = await _banubaService.openEditor([video.path]);
-        if (result != null && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Video exported successfully!'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
+    final picker = ImagePicker();
+    final video = await picker.pickVideo(source: ImageSource.gallery);
+    if (video == null) return;
+    if (!context.mounted) return;
+    _openEditor(context, video.path);
   }
 
   Future<void> _openAiClipping(BuildContext context) async {
-    try {
-      final picker = ImagePicker();
-      final video = await picker.pickVideo(source: ImageSource.gallery);
-      if (video == null) return;
-
-      if (context.mounted) {
-        await _banubaService.openAiClipping();
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
+    final picker = ImagePicker();
+    final video = await picker.pickVideo(source: ImageSource.gallery);
+    if (video == null) return;
+    if (!context.mounted) return;
+    // Open editor — user trims to create the "AI clip"
+    _openEditor(context, video.path, isAiClipping: true);
   }
 
   Future<void> _openTemplates(BuildContext context) async {
-    try {
-      await _banubaService.openTemplates();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
+    // Templates: pick a video, then open editor with template info
+    final picker = ImagePicker();
+    final video = await picker.pickVideo(source: ImageSource.gallery);
+    if (video == null) return;
+    if (!context.mounted) return;
+    _openEditor(context, video.path);
   }
 
   Future<void> _openDrafts(BuildContext context) async {
-    try {
-      await _banubaService.openDrafts();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
+    // Drafts: TODO — will show saved draft list in future
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Drafts coming soon'),
+        backgroundColor: AppColors.surfaceDark,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
+
+  void _openEditor(BuildContext context, String videoPath,
+      {bool isAiClipping = false}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => VideoEditorPage(videoPath: videoPath),
+      ),
+    ).then((exportedPath) {
+      if (exportedPath != null && context.mounted) {
+        _showSuccess(context, exportedPath as String);
+      }
+    });
+  }
+
+  void _showSuccess(BuildContext context, String exportedPath) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Video exported successfully!'),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: 'View',
+          textColor: Colors.white,
+          onPressed: () => context.push(
+            '/export',
+            extra: {'videoPath': exportedPath},
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +176,7 @@ class EditorScreen extends StatelessWidget {
             _OptionTile(
               icon: Iconsax.magicpen,
               title: 'AI Clipping',
-              subtitle: 'Auto-clip highlights with AI',
+              subtitle: 'Pick a video and trim highlights',
               iconGradient: const [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
               onTap: () => _openAiClipping(context),
             ),
@@ -232,7 +184,7 @@ class EditorScreen extends StatelessWidget {
             _OptionTile(
               icon: Iconsax.element_3,
               title: AppStrings.templates,
-              subtitle: 'Start from a template',
+              subtitle: 'Import video and apply template',
               iconGradient: const [Color(0xFF6C5CE7), Color(0xFF00D2FF)],
               onTap: () => _openTemplates(context),
             ),
@@ -250,6 +202,8 @@ class EditorScreen extends StatelessWidget {
     );
   }
 }
+
+// ─── Reusable Widgets ─────────────────────────────────────────────────────────
 
 class _MainActionCard extends StatelessWidget {
   final String title;
@@ -371,8 +325,7 @@ class _OptionTile extends StatelessWidget {
               ),
               child: ShaderMask(
                 shaderCallback: (bounds) =>
-                    LinearGradient(colors: iconGradient)
-                        .createShader(bounds),
+                    LinearGradient(colors: iconGradient).createShader(bounds),
                 child: Icon(icon, color: Colors.white, size: 22),
               ),
             ),

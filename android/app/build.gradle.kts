@@ -53,4 +53,7 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // IMG.LY Video Editor SDK — uncomment after receiving your license & Maven credentials
+    // implementation("ly.img.android.sdk:video-editor-ui:10.7.0")
 }

@@ -33,9 +33,14 @@ Future<void> main() async {
   ));
 
   // ── Firebase ──
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Try-catch handles duplicate-app from native Google Services auto-init
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {
+    // Already initialized — safe to continue
+  }
 
   // Pass all Flutter framework errors to Crashlytics
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
@@ -54,17 +59,22 @@ Future<void> main() async {
 
   // ── Local storage ──
   await Hive.initFlutter();
-  await Hive.openBox('settings');
-  await Hive.openBox('cache');
+  if (!Hive.isBoxOpen('settings')) await Hive.openBox('settings');
+  if (!Hive.isBoxOpen('cache')) await Hive.openBox('cache');
 
   // ── Dependency injection ──
+  await getIt.reset();
   await configureDependencies();
 
   // ── BLoC Crashlytics observer ──
   Bloc.observer = CrashlyticsBlocObserver(getIt<AnalyticsService>());
 
   // ── FCM notifications ──
-  await NotificationService.instance.initialize(getIt<SupabaseDataSource>());
+  try {
+    await NotificationService.instance.initialize(getIt<SupabaseDataSource>());
+  } catch (e) {
+    debugPrint('NotificationService init failed: $e');
+  }
 
   // TODO: Initialize RevenueCat when API keys are added
   // await Purchases.configure(PurchasesConfiguration(
